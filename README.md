@@ -13,7 +13,7 @@ Esse projeto tem como objetivo realizar o estudo do provisionamento de instânci
 
 **VPC**
 
-Primeiramente iremos configurar nossa VPC, Subnets, Internet Gateway e NAT Gates
+Primeiramente iremos configurar nossa VPCsubnets, Internet Gateway e NAT Gates
 
 1. Instale e Configure a AWS CLI em sua máquina local.
 2. Abra seu terminal e execute o seguinte comando para criar a VPC:
@@ -22,10 +22,20 @@ Primeiramente iremos configurar nossa VPC, Subnets, Internet Gateway e NAT Gates
 > Substitua o`<CIDR block>` com o block de endereços de IP que você deseja atrelar à sua VPC. Como por exemplo: `10.0.0.0/16`. substitua `<region>` com o código da região que você deseja criar sua VPC. Por exemplo, `ap-southeast-2`.
 
 3. O comando acima irá retornar um arquivo JSON contendo os detalhes da VPC recém criada, incluindo seu ID. Copie o ID da VPC, pois você precisará dele para os próximos passos.
-4. Para criar uma Subnet dentro da VPC, execute o seguinte comando:
-`aws ec2 create-subnet --vpc-id <VPC ID> --cidr-block <CIDR block> --region <region>`
+4. Agora iremos criar as subnets públicas e privadas que irão compor nossa VPC. Para criar uma subnet dentro da VPC, execute o seguinte comando:
+`aws ec2 creatsubnet --vpc-id <VPC ID> --cidr-block <CIDR block> --region <region>`
 
-> Substitua o `<VPC ID>` com o ID da VPC que você acabou de criar, e o `<CIDR block>` com o bloco de endereços IP que você deseja atrelar à subnet, por exemplo `10.0.1.0/24`.
+> Substitua o `<VPC ID>` com o ID da VPC que você acabou de criar, e o `<CIDR block>` com o bloco de endereços IP que você deseja atrelar subnet, por exemplo `10.0.1.0/24`.
+
+Basta repetir o procedimento agora para quantas subredes você desejar criar. Algumas boas práticas para se manter em mante são:
+
+1.Planeje cuidadosamente os intervalos de endereços IP da sua sub-rede
+2.Use várias Zonas de Disponibilidade
+3.Use diferentes tipos de sub-redes
+4.Use grupos de segurança e NACLs apropriados
+5.Considere o uso de diferentes sub-redes para diferentes camadas (Públicas e Privadas)
+6.Use nomes e tags descritivos
+
 
 5. Para criar um Internet Gateway e atrelá-lo à sua VPC, execute os seguintes comandos:
 
@@ -37,14 +47,35 @@ aws ec2 attach-internet-gateway --internet-gateway-id <internet gateway ID> --vp
 
 > Substitua `<internet gateway ID>` com o ID do internet gateway que foi criado.
 
-6. Finalmente, crie uma tabela de rotas para a VPC e associe ela com a subnet criada anteriormente com os seguintes comandos:
+6. Finalmente, crie uma tabela de rotas pública para a VPC e associe ela com subnet criada anteriormente com os seguintes comandos:
 
 ```
 
 aws ec2 create-route-table --vpc-id <VPC ID> --region <region>
-aws ec2 associate-route-table --route-table-id <route table ID> --subnet-id <subnet ID> --region <region>
+aws ec2 associate-route-table --route-table-id <route table ID> subnet-subnet ID> --region <region>
 ```
-> Substitua `<route table ID>` com o Id da tabela de rota que acabou de ser criada e `<subnet ID>` com o ID da subnet criada anteriormente.
+> Substitua `<route table ID>` com o Id da tabela de rota que acabou de ser criada e subnet ID>` com o ID da subnet criada anteriormente.
+
+7. Crie um IP Elástico que você possa associar com o seu Portão NAT com o comando:
+`aws ec2 allocate-address --region <region>`
+
+> Guarde o AllocationID que é retornado pelo comando para ser usado nas próximas etapas.
+
+8. Crie um Portão NAT usando o Endereço de IP Elástico
+`aws ec2 create-nat-gateway --subnet-id <public subnet ID> --allocation-id <allocation ID> --region <region>`
+
+> Substitua `public subnet ID` pelo ID de uma de suas subnets públicas, e `allocation ID` com o ID retornado pelo comando `allocate-address` na etapa anterior. Anote o ID do Portão NAT retornado pelo comando para as próximas etapas.
+
+9. Crie uma tabela de rotas privada que aponte para o Portão NAT:
+`aws ec2 create-route --route-table-id <private route table ID> --destination-cidr-block 0.0.0.0/0 --nat-gateway-id <NAT gateway ID> --region <region>`
+
+> Substituaa `<private route table ID>` com o ID da tabela de rotas privada que você criou anteriormente, e o `<NAT gateway ID>` com o ID retornado pelo comando`create-nat-gateway` no passo anterior
+
+10. Associe as subnets privadas à tabela de rotas:
+
+`aws ec2 associate-route-table --route-table-id <private route table ID> --subnet-id <private subnet ID > --region <region>`
+
+> Substitua`<private route table ID>` com o ID da tabela de rotas privada que você criou anteriormente, e `<private subnet ID >` pelo ID da subnet privada.
 
 **EFS**
 
