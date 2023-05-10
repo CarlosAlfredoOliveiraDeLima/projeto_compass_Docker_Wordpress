@@ -27,14 +27,15 @@ Primeiramente iremos configurar nossa VPCsubnets, Internet Gateway e NAT Gates
 
 > Substitua o `<VPC ID>` com o ID da VPC que você acabou de criar, e o `<CIDR block>` com o bloco de endereços IP que você deseja atrelar subnet, por exemplo `10.0.1.0/24`.
 
-Basta repetir o procedimento agora para quantas subredes você desejar criar. Algumas boas práticas para se manter em mante são:
+Basta repetir o procedimento agora para quantas subredes você desejar criar. 
 
-1.Planeje cuidadosamente os intervalos de endereços IP da sua sub-rede <br>
-2.Use várias Zonas de Disponibilidade <br>
-3.Use diferentes tipos de sub-redes <br>
-4.Use grupos de segurança e NACLs apropriados <br>
-5.Considere o uso de diferentes sub-redes para diferentes camadas (Públicas e Privadas) <br>
-6.Use nomes e tags descritivos <br>
+> Algumas boas práticas para se manter em mante são:
+> 1.Planeje cuidadosamente os intervalos de endereços IP da sua sub-rede <br>
+> 2.Use várias Zonas de Disponibilidade <br>
+> 3.Use diferentes tipos de sub-redes <br>
+> 4.Use grupos de segurança e NACLs apropriados <br>
+> 5.Considere o uso de diferentes sub-redes para diferentes camadas (Públicas e Privadas) <br>
+> 6.Use nomes e tags descritivos <br>
 
 
 5. Para criar um Internet Gateway e atrelá-lo à sua VPC, execute os seguintes comandos: <br>
