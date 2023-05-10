@@ -115,8 +115,7 @@ fs-12345678.efs.us-west-2.amazonaws.com:/ /mnt/my-efs
 
 6. Para  tornar a montagem persistente em caso de reinicializações é necessário adicionar uma entrada ao arquivo `/etc/fstab`. Por exemplo:
 ```
-fs-12345678.efs.us-west-2.amazonaws.com:/ /mnt/my-efs nfs4 \
-nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0
+fs-12345678.efs.us-west-2.amazonaws.com:/ /mnt/my-efs nfs4 \    nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0
 ```
 > Isso adiciona uma entrada ao arquivo `/etc/fstab` que informa ao sistema para montar o sistema de arquivos EFS em `/mnt/my-efs` usando as mesmas opções do comando mount acima. Isso garante que o sistema de arquivos EFS seja montado automaticamente sempre que a instância do EC2 for iniciada.
 
