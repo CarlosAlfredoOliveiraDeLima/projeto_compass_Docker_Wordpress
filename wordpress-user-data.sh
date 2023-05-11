@@ -44,4 +44,6 @@ services:
       - /media/efs/wordpress:/var/www/html
 EOF
 
+chmod 550 docker-compose.yml
+
 docker-compose up -d
