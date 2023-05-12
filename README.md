@@ -329,12 +329,45 @@ aws autoscaling attach-policy \
 
 ### **Hosts bastion do Linux na AWS**
 
-### **Certificado SSL**
+Para realizar o acesso às nossas instâncias via ssh, usaremos o Host Bastion no Linux na AWS. Para realizar isso, siga o passo a passo a seguir:
+
+1. Crie uma instância EC2 para o bastion host, como no exemplo:
+```
+aws ec2 run-instances \
+  --image-id <ami-id> \
+  --instance-type <instance-type> \
+  --key-name <key-pair-name> \
+  --subnet-id <subnet-id> \
+  --security-group-ids <comma-separated-security-group-ids>
+```
+> Substitua `<ami-id>` pelo ID da Amazon Machine Image (AMI) desejada, `<instance-type>` pelo tipo de instância EC2 desejado, `<key-pair-name>` pelo nome do par de chaves para acesso SSH, `<subnet-id>` pela ID da sub-rede onde você deseja lançar o bastion host e `<comma-separated-security-group-ids>` pelos IDs dos grupos de segurança que você deseja associar à instância.
+
+<br>
+2. Configure as regras de segurança do grupo de segurança:
+   
+  ```
+    aws ec2 authorize-security-group-ingress \
+    --group-id <security-group-id> \
+    --protocol tcp \
+    --port 22 \
+    --cidr <trusted-ip-range>
+  ```
+> Substitua `<security-group-id>` pelo ID do grupo de segurança associado à instância do bastion host e `<trusted-ip-range>` pelo intervalo de IP confiável que terá acesso SSH ao bastion host.
+
+<br>
+
+3. Por fim, acesse o bastion host via SSH:
+  
+  
+  ```
+  ssh -i <key-pair-file> ec2-user@<public-dns-name>
+  ```
+
+  > Substitua `<key-pair-file>` pelo caminho para o arquivo da chave de acesso (key pair) associado à instância, e `<public-dns-name>` pelo nome DNS público da instância do bastion host.
+
+  Uma vez conectado ao bastion host, você pode usar esse host para acessar outras instâncias na mesma VPC usando SSH, usando as chaves de acesso (key pairs) apropriadas.
+
 
 ### **Configuração do user_data.sh**
 
-### **Configuração do secrets/parameter store**
-
-## **Docker-compose**
-
-### **Configurando seu Container Wordpress**
+Adicionamos ao projeto um arquivo `user_data.sh` que define detalhes do provisionamento da instância no momento de sua criação. O arquivo está disponível para consulta no repositório.
