@@ -26,7 +26,7 @@ RDS_MYSQL_WP_ADMIN_PASSWD=$(gpg --gen-random --armor 1 21 | tail -1 | head -c 20
 
 echo "DB name: ${RDS_MYSQL_WP_DBNAME}"
 echo "Admin user: ${RDS_MYSQL_WP_ADMIN_USER}"
-echo "Admin password: ${RDS_MYSQL_WP_ADMIN_PASSWD}"
+echo "Admin password: ${RDS_MYSQL_WP_ADMIN_PASSWD}" | tee rds-admin-password.txt
 
 # Creates an RDS MySQL instance
 aws rds create-db-instance \

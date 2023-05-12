@@ -11,3 +11,9 @@ source "$(dirname "$0")/provision_efs.sh"
 
 # Provision RDS resources
 source "$(dirname "$0")/provision_rds.sh"
+
+# Provision Bastion Host
+source "$(dirname "$0")/provision_bastion.sh"
+
+# Provision SSM
+source "$(dirname "$0")/provision_ssm.sh"
