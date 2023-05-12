@@ -2,9 +2,8 @@
 
 set -e
 
-exec 1>/dev/null
-
 AWS_REGION=us-east-1
+AWS_DEFAULT_OUTPUT="text"
 
 ##### Criar VPC #####
 
@@ -45,12 +44,12 @@ echo "NAT Gateway <$NATGW_ID> created"
 # Gets the VPC's main route table id, adds a name tag to the route table and create a route to the Internet through the previously created NAT Gateway
 PRIV_RTB_ID=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$VPC_ID" "Name=association.main,Values=true" --query 'RouteTables[*].RouteTableId' --output text)
 aws ec2 create-tags --resources $PRIV_RTB_ID --tags Key=Name,Value=wordpress-task-riv-rtb
-aws ec2 create-route --route-table-id $PRIV_RTB_ID --gateway-id $NATGW_ID --destination-cidr-block 0.0.0.0/0
+aws ec2 create-route --route-table-id $PRIV_RTB_ID --gateway-id $NATGW_ID --destination-cidr-block 0.0.0.0/0 > /dev/null
 echo "Private route table <$PRIV_RTB_ID> configured"
 
 # Creates a new route table and adds to it a route to the internet through the previously created Internet Gateway
 PUB_RTB_ID=$(aws ec2 create-route-table --vpc-id $VPC_ID --query='RouteTable.RouteTableId' --output text --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=wordpress-task-pub-rtb}]')
-aws ec2 create-route --route-table-id $PUB_RTB_ID --gateway-id $IGW_ID --destination-cidr-block 0.0.0.0/0
+aws ec2 create-route --route-table-id $PUB_RTB_ID --gateway-id $IGW_ID --destination-cidr-block 0.0.0.0/0 > /dev/null
 echo "Public route table <$PUB_RTB_ID> configured"
 
 # Associates the private subnets with their respective route table
