@@ -10,13 +10,20 @@ Esse projeto tem como objetivo realizar o estudo do provisionamento de instânci
 4. Conhecimento do Sistema Operacional Linux.
 5. Conhecimento de AWS CLI e GUI.
 
+<br>
+
 ## **Arquitetura AWS**
+
 
 ![Diagrama da arquitetura](static/diagram.png)
 
 ### **VPC**
 
-Uma Virtual Private Network (VPC) é um ambiente de redes dentro da AWS que nos permite criar uma seções isoladas da Cloud AWS. Nesse ambiente, podemos provisionar alguns recursos, como instâncias EC2, Banco de Dados RDS, Load balancers Elásticos na rede virtual que nós definirmos.
+
+
+### **Virtual Private Network (VPC)**
+
+Uma VPC é um ambiente de redes dentro da AWS que nos permite criar uma seções isoladas da Cloud AWS. Nesse ambiente, podemos provisionar alguns recursos, como instâncias EC2, Banco de Dados RDS, Load balancers Elásticos na rede virtual que nós definirmos.
 
 Nesse projeto iremos configurar toda nossa arquitetura dentro  da AWS iniciando pela VPC, já que os demais elementos irão ser disponibilizados dentro da VPC. Isso irá incluir as subnets que iremos utilizar, tabelas de rota, Internet Gateway e NAT Gate.
 
@@ -27,7 +34,7 @@ Para configurar nossa VPC, siga os passos à seguir:
 <br>
 
 1. Instale e Configure a AWS CLI em sua máquina local.
-2. Abra seu terminal e execute o seguinte comando para criar a VPC:
+2. Você pode criar sua VPC usando o comando `create-vpc`, como no exemplo abaixo:
 ```
 aws ec2 create-vpc --cidr-block <CIDR block> --region <region>
 ```
@@ -36,9 +43,9 @@ aws ec2 create-vpc --cidr-block <CIDR block> --region <region>
 <br>
 
 3. O comando acima irá retornar um arquivo JSON contendo os detalhes da VPC recém criada, incluindo seu ID. Copie o ID da VPC, pois você precisará dele para os próximos passos. <br>
-4. Agora iremos criar as subnets públicas e privadas que irão compor nossa VPC. Para criar uma subnet dentro da VPC, execute o seguinte comando: <br>
+4. Agora iremos criar as subnets públicas e privadas que irão compor nossa VPC. Você pode criar uma subnet dentro da sua VPC com o comando `createsubnet` e passando alguns parâmetros como o `vpc-id`, `cidr-block` e `region`. Como no exemplo abaixo: <br>
 ```
-aws ec2 creatsubnet --vpc-id <VPC ID> --cidr-block <CIDR block> --region <region>
+aws ec2 createsubnet --vpc-id <VPC ID> --cidr-block <CIDR block> --region <region>
 ```
 > Substitua o `<VPC ID>` com o ID da VPC que você acabou de criar, e o `<CIDR block>` com o bloco de endereços IP que você deseja atrelar subnet, por exemplo `10.0.1.0/24`.
 
@@ -54,7 +61,7 @@ Basta repetir o procedimento agora para quantas subredes você desejar criar.
 
 <br>
 
- 5. Para criar um Internet Gateway e atrelá-lo à sua VPC, execute os seguintes comandos: 
+ 5. Você pode criar um Internet gateway com o comando `create-internet-gateway`, especificando `region` e atrelá-lo ao seu VPC com o comando `attach-internet-gateway`, como no exemplo abaixo: 
 
 ```
 aws ec2 create-internet-gateway --region <region>
@@ -65,7 +72,7 @@ aws ec2 attach-internet-gateway --internet-gateway-id <internet gateway ID> --vp
 
 <br>
 
- 6. Finalmente, crie uma tabela de rotas pública para a VPC e associe ela com subnet criada anteriormente com os seguintes comandos: 
+ 6. Finalmente, crie uma tabela de rotas pública para a VPC com o comando `create-route-table` e associe ela com subnet criada anteriormente com o comando `associate-route-table`, como no exemplo abaixo: 
 
 ```
 aws ec2 create-route-table --vpc-id <VPC ID> --region <region>
@@ -110,7 +117,7 @@ aws ec2 associate-route-table --route-table-id <private route table ID> --subnet
 
 <br>
 
-### **EFS**
+### **Elastic File System (EFS)**
 
 Agora, iremos configurar nosso Amazon Elastic File system (EFS) em uma instância EC2 e torná-lo persistente para armazenar arquivos privados dos serviços que utilizaremos à seguir.
 
@@ -144,7 +151,9 @@ fs-12345678.efs.us-west-2.amazonaws.com:/ /mnt/my-efs nfs4 \    nfsvers=4.1,rsiz
 ```
 > Isso adiciona uma entrada ao arquivo `/etc/fstab` que informa ao sistema para montar o sistema de arquivos EFS em `/mnt/my-efs` usando as mesmas opções do comando mount acima. Isso garante que o sistema de arquivos EFS seja montado automaticamente sempre que a instância do EC2 for iniciada.
 
-### **RDS**
+<br>
+
+### **Amazon Web Services Relational Database Service (RDS)**
 
 Agora iremos configurar nossa instância Amazon RDS que será usado para armazenar nosso banco de dados MySQL, que o WordPress irá usar para armazenar posts, páginas, comentários e outros dados do site.
 
@@ -178,19 +187,38 @@ aws rds create-db-instance \
 4. Aguarde que sua instância RDS seja criada. Você pode usar o comando `describe-db-instances` para checar o status da sua instância.
 
 5. Conecte-se à instância RDS usando o cliente MySQL, como o MySQL command-line client ou MySQL Workbench. Você pode encontrar o endpoint da instância RDS através do comando `describe-db-instances` com a opção `--query` para retornar a URL do endpoint.
-   
-### **ALB**
 
-### **ASG**
+<br>
 
-### **Bastion**
+### **Application Load Balancer (ALB)**
 
-### **SSL**
 
-### **user_data.sh**
+O ALB servirá para distribuir o tráfego recebido pela aplicação para diferentes alvos, como Instâncias EC2, containers e endereços de IP. Ele opera na camada 7 do modelo OSI, tornando possível a tomada inteligente de decisões baseada no conteúdo das chamadas HTTP/HTTPS.
 
-### **secrets/parameter store**
+ Para configurar o ALB usando AWS CLI você pode seguir os seguintes passos:
+ 1. Crie um target group. Um target group nada mais é do que um agrupamento lógico de alvos para onde você deseja distribuir o tráfego da sua aplicação. Você pode criar esse grupo usando o comando `create-target-group`, especificando alguns atributos. Como no exemplo abaixo:
+
+ ```
+aws elbv2 create-target-group \
+  --name my-target-group \
+  --protocol HTTP \
+  --port 80 \
+  --target-type instance \
+  --vpc-id <your-vpc-id>
+
+ ``` 
+
+
+### **Auto Scaling Groups (ASG)**
+
+### **Hosts bastion do Linux na AWS**
+
+### **Certificado SSL**
+
+### **Configuração do user_data.sh**
+
+### **Configuração do secrets/parameter store**
 
 ## **Docker-compose**
 
-### **Container Wordpress**
+### **Configurando seu Container Wordpress**
