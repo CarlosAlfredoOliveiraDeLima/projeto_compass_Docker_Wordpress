@@ -15,6 +15,12 @@ Esse projeto tem como objetivo realizar o estudo do provisionamento de instânci
 ## **Arquitetura AWS**
 
 
+![Diagrama da arquitetura](static/diagram.png)
+
+### **VPC**
+
+
+
 ### **Virtual Private Network (VPC)**
 
 Uma VPC é um ambiente de redes dentro da AWS que nos permite criar uma seções isoladas da Cloud AWS. Nesse ambiente, podemos provisionar alguns recursos, como instâncias EC2, Banco de Dados RDS, Load balancers Elásticos na rede virtual que nós definirmos.
