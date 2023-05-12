@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Require VPC_ID environement variable
+# Require VPC_ID environment variable
 
 set -e
 
