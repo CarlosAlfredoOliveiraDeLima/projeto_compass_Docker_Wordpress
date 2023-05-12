@@ -255,7 +255,83 @@ aws elbv2 describe-load-balancers
 
 ### **AMI**
 
+Agora iremos criar nossa Imagem de Máquina da Amazon (AMI) usando a AWS CLI. A AMI servirá para que caso tenhamos que provisionar novas instâncias, podemos realizar a partir de uma imagem pré-configurada que contenha todos os passos anteriores. Assim, dispensando a repetição de comandos.
+
+Para essa configuração, siga os passos à seguir:
+
+1.  Inicie uma instância EC2 da qual você deseja criar a AMI. Verifique se a instância está em um estado que permite a criação de AMIs (por exemplo, em execução ou parada).
+2. Se você quiser adicionar tags à AMI para uma melhor organização e identificação, você pode usar o comando create-tags para adicionar tags à instância:
+   ```
+   aws ec2 create-tags --resources <instance-id> --tags Key=<tag-key>,Value=<tag-value>
+   ```
+  > Substitua `<instance-id>` pelo ID da instância EC2 e `<tag-key>` e `<tag-value>` pelo par chave-valor da tag desejada.
+
+<br>
+
+3. Para criar a imagem, você pode executar o comando como no exemplo:
+```   
+aws ec2 create-image --instance-id <instance-id> --name "Minha AMI" --description "Minha AMI personalizada"
+```
+4. Você pode verificar o progresso da criação do AMI usando o comando `aws ec2 describe-images --image-ids <ami-id>`
+
+<br>
+
 ### **Auto Scaling Groups (ASG)**
+
+Agora iremos configurar nosso Auto Scaling Group. O ASG contém uma coleção de instâncias EC2 que são tratadas como um agrupamento lógico para fins de dimensionamento e gerenciamento automático. Um grupo de Auto Scaling também permite que você utilize recursos do Amazon EC2 Auto Scaling, como substituições de verificação de saúde e políticas de dimensionamento. Para realizar essa configuração, siga os seguintes passos:
+
+1. Crie uma configuração de lançamento (launch configuration) como no exemplo a seguir:
+```
+aws autoscaling create-launch-configuration \
+  --launch-configuration-name meu-launch-config \
+  --image-id <ami-id> \
+  --instance-type <instance-type> \
+  --security-groups <comma-separated-security-group-ids> \
+  --key-name <key-pair-name> \
+  --user-data <user-data-script>
+```
+
+> Substitua <ami-id> pelo ID da Amazon Machine Image (AMI) que você deseja usar, <instance-type> pelo tipo de instância EC2 desejado, <comma-separated-security-group-ids> pelos IDs dos grupos de segurança que você deseja associar às instâncias, <key-pair-name> pelo nome do par de chaves para acesso SSH e <user-data-script> pelo script de dados do usuário opcional para configuração.
+
+<br>
+
+2. Crie um Auto Scaling Group como no exemplo à seguir:
+```
+aws autoscaling create-auto-scaling-group \
+  --auto-scaling-group-name meu-asg \
+  --launch-configuration-name meu-launch-config \
+  --min-size 2 \
+  --max-size 5 \
+  --desired-capacity 2 \
+  --vpc-zone-identifier <comma-separated-subnet-ids> \
+  --target-group-arns <comma-separated-target-group-arns>
+```
+> Substitua <comma-separated-subnet-ids> pelos IDs das sub-redes onde você deseja que as instâncias sejam lançadas e <comma-separated-target-group-arns> pelos ARNs dos grupos de destino associados ao seu Application Load Balancer (ALB) ou Network Load Balancer (NLB).
+
+<br>
+
+3. Configure as políticas de dimensionamento (scaling policies). Como no exemplo abaixo:
+
+```
+aws autoscaling put-scaling-policy \
+  --auto-scaling-group-name meu-asg \
+  --policy-name minha-politica-de-dimensionamento \
+  --policy-type <policy-type> \
+  --adjustment-type <adjustment-type> \
+  --scaling-adjustment <scaling-adjustment>
+```
+> Substitua <policy-type> pelo tipo de política de dimensionamento (por exemplo, "SimpleScaling" ou "TargetTrackingScaling"), <adjustment-type> pelo tipo de ajuste (por exemplo, "ChangeInCapacity" ou "PercentChangeInCapacity") e <scaling-adjustment> pelo valor do ajuste.
+
+<br>
+
+4. Anexe a política de dimensionamento ao Auto Scaling Group:
+
+```
+aws autoscaling attach-policy \
+  --policy-arn <policy-arn> \
+  --auto-scaling-group-name meu-asg\
+```
+>Substitua <policy-arn> pelo ARN da política de dimensionamento criada na etapa anterior.
 
 ### **Hosts bastion do Linux na AWS**
 
