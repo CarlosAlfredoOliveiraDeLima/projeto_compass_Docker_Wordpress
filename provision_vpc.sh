@@ -5,8 +5,6 @@ set -e
 AWS_REGION=us-east-1
 AWS_DEFAULT_OUTPUT="text"
 
-##### Criar VPC #####
-
 # Creates VPC and enables hostname DNS resolution
 VPC_ID=$(aws ec2 create-vpc --cidr-block 172.16.0.0/16 --query="Vpc.VpcId" --output text --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=wordpress-task-vpc}]')
 aws ec2 modify-vpc-attribute --enable-dns-hostnames --vpc-id $VPC_ID
