@@ -245,6 +245,9 @@ aws elbv2 create-listener \
 ```
 aws elbv2 describe-load-balancers
 ```
+> Esse comando irá mostrar os detalhes de do ALB, incluindo o status atual e configurações.
+
+### **AMI**
 
 ### **Auto Scaling Groups (ASG)**
 
