@@ -158,7 +158,7 @@ Para isso, será necessário realizar as etapas listadas à seguir:
 aws ec2 create-security-group --group-name my-db-sg --description "Security Group do meu DB"
 ```
 
-2. Configure o security group para permitir o tráfego de entrada para sua instância RDS executando o comando:
+2. Configure o security group para permitir o tráfego de entrada para sua instância RDS. Por exemplo:
 ```
 aws ec2 authorize-security-group-ingress --group-name my-db-sg --protocol tcp --port 3306 --cidr 0.0.0.0/0
 ```
@@ -198,10 +198,53 @@ aws elbv2 create-target-group \
   --protocol HTTP \
   --port 80 \
   --target-type instance \
-  --vpc-id <your-vpc-id>
+  --vpc-id <seu-endereço-vpc>
+ ```
+> Substitua `seu-endereço-vpc` pelo IF da sua VPC onde suas instâncias EC2 estão criadas.
 
- ``` 
+<br>
 
+2. Registre os Alvos como no exemplo abaixo:
+
+```
+aws elbv2 register-targets \
+  --target-group-arn <target-group-arn> \
+  --target Id =<instance-id>
+```
+
+>Substitua `<target-group-arn>` com o ARN do grupo alvo que você criou no passo anterior, E substitua `<instance-id>` com o ID da instância EC2 que você deseja registrar como alvo.
+
+<br>
+
+3. Crie seu Load Balancer como no exemplo:
+```
+aws elbv2 create-load-balancer \
+  --name my-load-balancer \
+  --subnets <ids-da-subnet-separado-por-virgula> \
+  --security-groups <ids-dos-security-groups-separado-por-virgula> \
+```
+> Substitua `<ids-da-subnet-separado-por-virgula>` pelos IDs das subnets que você deseja que o ALB seja implantado. Substitua `<ids-dos-security-groups-separado-por-virgula>` com os IDs dos security groups que você deseja associar com o ALB.
+
+<br>
+
+4. Configure os listeners como no exemplo abaixo:
+```
+aws elbv2 create-listener \
+  --load-balancer-arn <load-balancer-arn> \
+  --protocol HTTP \
+  --port 80 \
+  --default-actions Type=forward,TargetGroupArn=<target-group-arn>
+```
+
+> Substitua `<load-balancer-arn>` com o ARN do ALB que você criou no terceiro passo. E substitua `<target-group-arn>` com o ARN do grupo alvo criado.
+ 
+<br>
+
+5. Verifique a configuração do ALB com o comando 
+
+```
+aws elbv2 describe-load-balancers
+```
 
 ### **Auto Scaling Groups (ASG)**
 
