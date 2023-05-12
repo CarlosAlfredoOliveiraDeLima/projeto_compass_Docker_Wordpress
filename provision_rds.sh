@@ -17,6 +17,8 @@ aws rds create-db-subnet-group \
     --db-subnet-group-description "Subnet Group for MySQL RDS" \
     --subnet-ids "[\"$RDS_PRIV_SUBNET_1\",\"$RDS_PRIV_SUBNET_2\"]" > /dev/null
 
+echo "RDS Subnet Group <$DB_SUBNET_GROUP_NAME> created"
+
 RDS_MYSQL_WP_ID=wordpress-task-rds-mysql
 RDS_MYSQL_WP_ADMIN_USER=admin
 RDS_MYSQL_WP_DBNAME=wordpress
