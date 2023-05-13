@@ -16,6 +16,16 @@ export TAGS='{"Key":"Task","Value":"Docker-WordPress"},{"Key":"Project","Value":
 WP_TG_NAME=wordpress-task-tg
 WP_TG_ARN=$(aws elbv2 create-target-group --name "$WP_TG_NAME" --protocol HTTP --port 8080 \
     --vpc-id "$VPC_ID" --ip-address-type ipv4 \
+    --target-type instance \
+    --health-check-protocol HTTP \
+    --health-check-port 8080 \
+    --health-check-path "/" \
+    --health-check-interval-seconds 15 \
+    --health-check-timeout-seconds 5 \
+    --healthy-threshold-count 2 \
+    --unhealthy-threshold-count 4 \
+    --matcher "HttpCode=200-399" \
+    --health-check-enabled \
     --tags "[{\"Key\":\"Name\",\"Value\":\"$WP_TG_NAME\"},$TAGS]" \
     --query 'TargetGroups[0].TargetGroupArn')
 echo "Target Group <$WP_TG_ARN> created"
