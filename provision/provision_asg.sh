@@ -1,10 +1,12 @@
 #!/bin/bash
 
 # Required Environment Variables:
-#   WP_SG_ID
-#   BASTION_KEY_NAME
-#   SSM_INSTANCE_PROFILE_NAME
-#   PUB_SUBNET_2
+#   WP_WP_SG_ID
+#   WP_BASTION_KEY_NAME
+#   WP_SSM_INSTANCE_PROFILE_NAME
+#   WP_PRIV_SUBNET_1
+#   WP_PRIV_SUBNET_2
+#   WP_TG_ARN
 
 set -e
 
@@ -17,10 +19,10 @@ aws autoscaling create-launch-configuration \
     --launch-configuration-name "$WP_LC_NAME" \
     --image-id ami-06a0cd9728546d178 \
     --instance-type t3.small \
-    --security-groups "$WP_SG_ID" \
-    --key-name "$BASTION_KEY_NAME" \
+    --security-groups "$WP_WP_SG_ID" \
+    --key-name "$WP_BASTION_KEY_NAME" \
     --user-data "file://$(dirname "$0")/wordpress-user-data.sh" \
-    --iam-instance-profile "$SSM_INSTANCE_PROFILE_NAME"
+    --iam-instance-profile "$WP_SSM_INSTANCE_PROFILE_NAME"
 echo "Launch configuration <$WP_LC_NAME> created"
 
 WP_ASG_NAME="wordpress-task-asg"
@@ -29,7 +31,7 @@ aws autoscaling create-auto-scaling-group \
     --launch-configuration-name "$WP_LC_NAME" \
     --min-size 2 \
     --max-size 4 \
-    --vpc-zone-identifier "$PRIV_SUBNET_1,$PRIV_SUBNET_2"
+    --vpc-zone-identifier "$WP_PRIV_SUBNET_1,$WP_PRIV_SUBNET_2" \
     --target-group-arns "$WP_TG_ARN" \
     ----health-check-type "ELB" \
     --tags "[{\"Key\":\"Name\",\"Value\":\"$WP_ASG_NAME\"},$TAGS,\"PropagateAtLaunch\":true]"

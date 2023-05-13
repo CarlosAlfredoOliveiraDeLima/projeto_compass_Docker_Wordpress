@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Required Environment Variables:
-#   VPC_ID
-#   ALB_SG_ID
-#   PUB_SUBNET_1
-#   PUB_SUBNET_2
+#   WP_VPC_ID
+#   WP_ALB_SG_ID
+#   WP_PUB_SUBNET_1
+#   WP_PUB_SUBNET_2
 
 set -e
 
@@ -15,7 +15,7 @@ export TAGS='{"Key":"Task","Value":"Docker-WordPress"},{"Key":"Project","Value":
 # Creates a target group on port 8080
 WP_TG_NAME=wordpress-task-tg
 WP_TG_ARN=$(aws elbv2 create-target-group --name "$WP_TG_NAME" --protocol HTTP --port 8080 \
-    --vpc-id "$VPC_ID" --ip-address-type ipv4 \
+    --vpc-id "$WP_VPC_ID" --ip-address-type ipv4 \
     --target-type instance \
     --health-check-protocol HTTP \
     --health-check-port 8080 \
@@ -33,7 +33,7 @@ echo "Target Group <$WP_TG_ARN> created"
 # Creates a dualstack Application Load Balancer
 WP_ALB_NAME="wordpress-task-alb"
 WP_ALB_ARN=$(aws elbv2 create-load-balancer --name "$WP_ALB_NAME"  \
-    --subnets "$PUB_SUBNET_1" "$PUB_SUBNET_2" --security-groups "$ALB_SG_ID" \
+    --subnets "$WP_PUB_SUBNET_1" "$WP_PUB_SUBNET_2" --security-groups "$WP_ALB_SG_ID" \
     --ip-address-type ipv4 \
     --tags "[{\"Key\":\"Name\",\"Value\":\"$WP_ALB_NAME\"},$TAGS]" \
     --query 'LoadBalancers[0].LoadBalancerArn')

@@ -10,7 +10,7 @@ sh -c "curl -L https://github.com/docker/compose/releases/download/v2.17.3/docke
 chmod +x /usr/local/bin/docker-compose
 ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
-EFS_URL=$(aws ssm get-parameter --name /wordpress/efs-url --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
+WP_EFS_URL=$(aws ssm get-parameter --name /wordpress/efs-url --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
 WORDPRESS_DB_HOST=$(aws ssm get-parameter --name /wordpress/db-host --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
 export WORDPRESS_DB_HOST
 WORDPRESS_DB_NAME=$(aws ssm get-parameter --name /wordpress/db-name --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
@@ -21,7 +21,7 @@ WORDPRESS_DB_PASSWORD=$(aws ssm get-parameter --name /wordpress/db-password --wi
 export WORDPRESS_DB_PASSWORD
 
 mkdir -p /media/efs/
-printf "\n%s:/\t/media/efs/\tnfs4\tnfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport\t0\t0" "$EFS_URL" >> /etc/fstab
+printf "\n%s:/\t/media/efs/\tnfs4\tnfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport\t0\t0" "$WP_EFS_URL" >> /etc/fstab
 mount -a
 mkdir -p /media/efs/wordpress
 
