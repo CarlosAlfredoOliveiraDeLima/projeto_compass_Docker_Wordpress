@@ -17,6 +17,8 @@ PRIV_SUBNET_2=$(aws ec2 create-subnet --vpc-id "$VPC_ID" --availability-zone us-
 echo "Private subnet 2 <$PRIV_SUBNET_2> created"
 PUB_SUBNET_1=$(aws ec2 create-subnet --vpc-id "$VPC_ID" --availability-zone us-east-1a --cidr-block 172.16.250.0/24 --query='Subnet.SubnetId'  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=wordpress-task-pub-subnet-1}]')
 echo "Public subnet 1 <$PUB_SUBNET_1> created"
+PUB_SUBNET_2=$(aws ec2 create-subnet --vpc-id "$VPC_ID" --availability-zone us-east-1b --cidr-block 172.16.251.0/24 --query='Subnet.SubnetId'  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=wordpress-task-pub-subnet-2}]')
+echo "Public subnet 2 <$PUB_SUBNET_2> created"
 RDS_PRIV_SUBNET_1=$(aws ec2 create-subnet --vpc-id "$VPC_ID" --availability-zone us-east-1a --cidr-block 172.16.254.0/28 --query='Subnet.SubnetId'  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=wordpress-task-rds-priv-subnet-1}]')
 echo "Private RDS subnet 1 <$RDS_PRIV_SUBNET_1> created"
 RDS_PRIV_SUBNET_2=$(aws ec2 create-subnet --vpc-id "$VPC_ID" --availability-zone us-east-1b --cidr-block 172.16.254.16/28 --query='Subnet.SubnetId'  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=wordpress-task-rds-priv-subnet-2}]')
@@ -57,6 +59,8 @@ aws ec2 associate-route-table --route-table-id "$PRIV_RTB_ID" --subnet-id "$subn
 done
 echo "Private subnets route table associations done"
 
-# Associates the only public subnet with the public route table
-aws ec2 associate-route-table --route-table-id "$PUB_RTB_ID" --subnet-id "$PUB_SUBNET_1"
+for subnet in $PUB_SUBNET_1 $PUB_SUBNET_2
+do
+aws ec2 associate-route-table --route-table-id "$PUB_RTB_ID" --subnet-id "$subnet"
+done
 echo "Public subnet route table association done"
