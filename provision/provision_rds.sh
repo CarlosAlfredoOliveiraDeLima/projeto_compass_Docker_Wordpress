@@ -9,13 +9,15 @@ set -e
 
 export AWS_REGION=us-east-1
 export AWS_DEFAULT_OUTPUT="text"
+export TAGS='{"Key":"Task","Value":"Docker-WordPress"},{"Key":"Project","Value":"PB UNIVESP URI"},{"Key":"CostCenter","Value":"C092000004"}'
 
 WP_DB_SUBNET_GROUP_NAME=wordpress-task-rds-mysql-subnet-group
 # Creates a subnet group for the RDS instance
 aws rds create-db-subnet-group \
     --db-subnet-group-name $WP_DB_SUBNET_GROUP_NAME \
     --db-subnet-group-description "Subnet Group for MySQL RDS" \
-    --subnet-ids "[\"$WP_RDS_PRIV_SUBNET_1\",\"$WP_RDS_PRIV_SUBNET_2\"]" > /dev/null
+    --subnet-ids "[\"$WP_RDS_PRIV_SUBNET_1\",\"$WP_RDS_PRIV_SUBNET_2\"]" \
+    --tags "[{\"Key\":\"Name\",\"Value\":\"$WP_DB_SUBNET_GROUP_NAME\"},$TAGS]" > /dev/null
 
 echo "RDS Subnet Group <$WP_DB_SUBNET_GROUP_NAME> created"
 
@@ -44,7 +46,8 @@ aws rds create-db-instance \
     --vpc-security-group-ids "$WP_RDS_SG_ID" \
     --no-publicly-accessible \
     --backup-retention-period 0 \
-    --no-auto-minor-version-upgrade > /dev/null
+    --no-auto-minor-version-upgrade \
+    --tags "[{\"Key\":\"Name\",\"Value\":\"$WP_RDS_MYSQL_ID\"},$TAGS]" > /dev/null
 
 while [[ $(aws rds describe-db-instances --db-instance-identifier $WP_RDS_MYSQL_ID --query 'DBInstances[0].DBInstanceStatus') != "available" ]]
 do

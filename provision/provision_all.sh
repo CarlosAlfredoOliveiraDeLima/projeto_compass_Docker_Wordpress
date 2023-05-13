@@ -17,3 +17,9 @@ source "$(dirname "$0")/provision_bastion.sh"
 
 # Provision SSM
 source "$(dirname "$0")/provision_ssm.sh"
+
+# Provision ALB
+source "$(dirname "$0")/provision_alb.sh"
+
+# Provision ASG
+source "$(dirname "$0")/provision_asg.sh"

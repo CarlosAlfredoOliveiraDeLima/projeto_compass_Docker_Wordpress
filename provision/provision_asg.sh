@@ -14,6 +14,7 @@ export AWS_REGION=us-east-1
 export AWS_DEFAULT_OUTPUT="text"
 export TAGS='{"Key":"Task","Value":"Docker-WordPress"},{"Key":"Project","Value":"PB UNIVESP URI"},{"Key":"CostCenter","Value":"C092000004"}'
 
+# Creates a lauch configuration for WordPress on Docker EC2 instances
 WP_LC_NAME="wordpress-task-lc"
 aws autoscaling create-launch-configuration \
     --launch-configuration-name "$WP_LC_NAME" \
@@ -25,6 +26,7 @@ aws autoscaling create-launch-configuration \
     --iam-instance-profile "$WP_SSM_INSTANCE_PROFILE_NAME"
 echo "Launch configuration <$WP_LC_NAME> created"
 
+# Creates an Auto Scaling Group using the previously created LC and attaches the instances to a previously created TG
 WP_ASG_NAME="wordpress-task-asg"
 aws autoscaling create-auto-scaling-group \
     --auto-scaling-group-name "$WP_ASG_NAME" \

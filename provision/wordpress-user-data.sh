@@ -13,8 +13,8 @@ ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 WP_EFS_URL=$(aws ssm get-parameter --name /wordpress/efs-url --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
 WORDPRESS_DB_HOST=$(aws ssm get-parameter --name /wordpress/db-host --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
 export WORDPRESS_DB_HOST
-WORDPRESS_DB_NAME=$(aws ssm get-parameter --name /wordpress/db-name --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
-export WORDPRESS_DB_NAME
+WP_RDS_MYSQL_DBNAME=$(aws ssm get-parameter --name /wordpress/db-name --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
+export WP_RDS_MYSQL_DBNAME
 WORDPRESS_DB_USER=$(aws ssm get-parameter --name /wordpress/db-user --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
 export WORDPRESS_DB_USER
 WORDPRESS_DB_PASSWORD=$(aws ssm get-parameter --name /wordpress/db-password --with-decryption --region=us-east-1 --query "Parameter.Value" --output=text)
@@ -43,7 +43,7 @@ services:
       WORDPRESS_DB_HOST: "\$WORDPRESS_DB_HOST"
       WORDPRESS_DB_USER: "\$WORDPRESS_DB_USER"
       WORDPRESS_DB_PASSWORD: "\$WORDPRESS_DB_PASSWORD"
-      WORDPRESS_DB_NAME: "\$WORDPRESS_DB_NAME"
+      WP_RDS_MYSQL_DBNAME: "\$WP_RDS_MYSQL_DBNAME"
     volumes:
       - /media/efs/wordpress:/var/www/html
 EOF
