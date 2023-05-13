@@ -22,11 +22,13 @@ aws autoscaling create-launch-configuration \
     --instance-type t3.small \
     --security-groups "$WP_WP_SG_ID" \
     --key-name "$WP_BASTION_KEY_NAME" \
-    --user-data "file://$(dirname "$0")/wordpress-user-data.sh" \
+    --user-data "file://$(dirname "$0")/wordpress-user-data.txt" \
     --iam-instance-profile "$WP_SSM_INSTANCE_PROFILE_NAME"
 echo "Launch configuration <$WP_LC_NAME> created"
 
 # Creates an Auto Scaling Group using the previously created LC and attaches the instances to a previously created TG
+export TAGS='{"Key":"Task","Value":"Docker-WordPress","PropagateAtLaunch":true},{"Key":"Project","Value":"PB UNIVESP URI","PropagateAtLaunch":true},
+             {"Key":"CostCenter","Value":"C092000004","PropagateAtLaunch":true}'
 WP_ASG_NAME="wordpress-task-asg"
 aws autoscaling create-auto-scaling-group \
     --auto-scaling-group-name "$WP_ASG_NAME" \
@@ -35,6 +37,6 @@ aws autoscaling create-auto-scaling-group \
     --max-size 4 \
     --vpc-zone-identifier "$WP_PRIV_SUBNET_1,$WP_PRIV_SUBNET_2" \
     --target-group-arns "$WP_TG_ARN" \
-    ----health-check-type "ELB" \
-    --tags "[{\"Key\":\"Name\",\"Value\":\"$WP_ASG_NAME\"},$TAGS,\"PropagateAtLaunch\":true]"
+    --health-check-type "ELB" \
+    --tags "[{\"Key\":\"Name\",\"Value\":\"$WP_ASG_NAME\",\"PropagateAtLaunch\":true},$TAGS]"
 echo "Auto Scaling Group <$WP_ASG_NAME> created"

@@ -20,7 +20,7 @@ WP_TG_ARN=$(aws elbv2 create-target-group --name "$WP_TG_NAME" --protocol HTTP -
     --health-check-protocol HTTP \
     --health-check-port 8080 \
     --health-check-path "/" \
-    --health-check-interval-seconds 15 \
+    --health-check-interval-seconds 30 \
     --health-check-timeout-seconds 5 \
     --healthy-threshold-count 2 \
     --unhealthy-threshold-count 4 \
@@ -39,7 +39,7 @@ WP_ALB_ARN=$(aws elbv2 create-load-balancer --name "$WP_ALB_NAME"  \
     --query 'LoadBalancers[0].LoadBalancerArn')
 while [[ $(aws elbv2 describe-load-balancers --load-balancer-arns "$WP_ALB_ARN" --query 'LoadBalancers[0].State.Code') != "active" ]]
 do
-sleep 30
+sleep 10
 done
 echo "Application Load Balancer <$WP_ALB_ARN> created"
 

@@ -12,14 +12,15 @@ export TAGS="{Key=Task,Value=Docker-WordPress},{Key=Project,Value=PB UNIVESP URI
 
 # Creates a key pair to be used with the bastion host and other project-related instances
 WP_BASTION_KEY_NAME="wordpress-task-key"
+key_uuid=$(uuidgen | head -c 6)
 aws ec2 create-key-pair \
     --key-name "$WP_BASTION_KEY_NAME" \
     --key-type rsa \
     --key-format pem \
     --query "KeyMaterial" \
     --tag-specifications "ResourceType=key-pair,Tags=[{Key=Name,Value=$WP_BASTION_KEY_NAME},$TAGS]" \
-    --output text > "$WP_BASTION_KEY_NAME.pem"
-chmod 400 "$WP_BASTION_KEY_NAME.pem"
+    --output text > "$WP_BASTION_KEY_NAME-$key_uuid.pem"
+chmod 400 "$WP_BASTION_KEY_NAME-$key_uuid.pem"
 echo "Bastion Host Key Pair created"
 
 WP_BASTION_ID=$(aws ec2 run-instances \

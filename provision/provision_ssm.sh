@@ -39,7 +39,7 @@ echo "Instance Profile <$WP_SSM_INSTANCE_PROFILE_NAME> created"
 
 aws ssm put-parameter \
     --name "/wp/efs-url" \
-    --value "$WP_EFS_URL" \
+    --value "$WP_EFS_DNS" \
     --type "SecureString" > /dev/null
 
 aws ssm put-parameter \

@@ -51,7 +51,7 @@ aws rds create-db-instance \
 
 while [[ $(aws rds describe-db-instances --db-instance-identifier $WP_RDS_MYSQL_ID --query 'DBInstances[0].DBInstanceStatus') != "available" ]]
 do
-sleep 30
+sleep 10
 done
 
 WP_RDS_MYSQL_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier $WP_RDS_MYSQL_ID --query 'DBInstances[0].Endpoint.Address')

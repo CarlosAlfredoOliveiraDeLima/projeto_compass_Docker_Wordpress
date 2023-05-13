@@ -19,7 +19,7 @@ WP_EFS_ID=$(aws efs create-file-system --performance-mode generalPurpose --throu
         --query 'FileSystemId')
 while [[ $(aws efs describe-file-systems --file-system-id "$WP_EFS_ID" --query 'FileSystems[0].LifeCycleState') != "available" ]]
 do
-sleep 30
+sleep 10
 done
 echo "EFS File System <$WP_EFS_ID> created"
 
@@ -31,7 +31,7 @@ WP_MOUNT_TARGET_ID_1=$(aws efs create-mount-target \
     --query 'MountTargetId')
 while [[ $(aws efs describe-mount-targets --mount-target-id "$WP_MOUNT_TARGET_ID_1" --query 'MountTargets[0].LifeCycleState') != "available" ]]
 do
-sleep 30
+sleep 10
 done
 echo "Mount target on private subnet 1 <$WP_PRIV_SUBNET_1> created"
 
@@ -42,9 +42,9 @@ WP_MOUNT_TARGET_ID_2=$(aws efs create-mount-target \
     --query 'MountTargetId')
 while [[ $(aws efs describe-mount-targets --mount-target-id "$WP_MOUNT_TARGET_ID_2" --query 'MountTargets[0].LifeCycleState') != "available" ]]
 do
-sleep 30
+sleep 10
 done
-echo "Mount target on private subnet 1 <$WP_PRIV_SUBNET_2> created"
+echo "Mount target on private subnet 2 <$WP_PRIV_SUBNET_2> created"
 
 WP_EFS_DNS="$WP_EFS_ID.efs.$AWS_REGION.amazonaws.com"
 echo "EFS DNS: $WP_EFS_DNS"
