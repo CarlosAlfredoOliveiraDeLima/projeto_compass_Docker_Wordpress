@@ -16,14 +16,14 @@ export AWS_DEFAULT_OUTPUT="text"
 SSM_ROLE_NAME="read-ssm-parameters-role"
 aws iam create-role \
     --role-name "$SSM_ROLE_NAME" \
-    --assume-role-policy-document file://ec2_trust_policy.json > /dev/null
+    --assume-role-policy-document "file://$(dirname "$0")/ec2_trust_policy.json" > /dev/null
 
 # Attaches a policy to the role
 SSM_POLICY_NAME="ReadSSMParametersPolicy"
 aws iam put-role-policy \
     --role-name "$SSM_ROLE_NAME" \
     --policy-name "$SSM_POLICY_NAME" \
-    --policy-document file://ssm_read_policy.json > /dev/null
+    --policy-document "file://$(dirname "$0")/ssm_read_policy.json" > /dev/null
 
 SSM_INSTANCE_PROFILE_NAME="read-ssm-parameters-profile"
 aws iam create-instance-profile --instance-profile-name "$SSM_INSTANCE_PROFILE_NAME" > /dev/null
