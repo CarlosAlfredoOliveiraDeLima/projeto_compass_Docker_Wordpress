@@ -23,7 +23,7 @@ WP_TG_ARN=$(aws elbv2 create-target-group --name "$WP_TG_NAME" --protocol HTTP -
     --health-check-interval-seconds 30 \
     --health-check-timeout-seconds 5 \
     --healthy-threshold-count 2 \
-    --unhealthy-threshold-count 4 \
+    --unhealthy-threshold-count 5 \
     --matcher "HttpCode=200-399" \
     --health-check-enabled \
     --tags "[{\"Key\":\"Name\",\"Value\":\"$WP_TG_NAME\"},$TAGS]" \
