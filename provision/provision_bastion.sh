@@ -26,7 +26,7 @@ echo "Bastion Host Key Pair created"
 WP_BASTION_ID=$(aws ec2 run-instances \
     --count=1 \
     --image-id ami-06a0cd9728546d178 \
-    --instance-type t3.small \
+    --instance-type t2.micro \
     --key-name "$WP_BASTION_KEY_NAME" \
     --subnet-id "$WP_PUB_SUBNET_1" \
     --security-group-ids "$WP_BASTION_SG_ID" \
