@@ -87,8 +87,55 @@ Resources:
       InstanceId: !Ref BastionHost
       EIP: !Ref BastionHostEIP
 
-  WebServerInstance:
-    Type: AWS::EC2::Instance
+  ApplicationTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-VPCID
+      IpAddressType: ipv4
+      TargetType: instance
+      Protocol: HTTP
+      Port: !Sub "{{resolve:ssm:/${NetworkStackName}/appport}}"
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: !Sub "{{resolve:ssm:/${NetworkStackName}/appport}}"
+      HealthCheckPath: '/'
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+      Matcher: 
+        HttpCode: 200-399
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      IpAddressType: ipv4
+      Subnets:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PublicSubnetID1
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PublicSubnetID2
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-ELBSGID
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !GetAtt ApplicationTargetGroup.TargetGroupArn
+
+  ApplicationLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
       'AWS::CloudFormation::Init':
         configSets:
@@ -154,28 +201,43 @@ Resources:
       InstanceType: !Ref InstanceSize
       ImageId: !Ref AmazonLinuxAMIID
       KeyName: !Ref SSHKey
-      SubnetId: subnet-085a8785cbf31b908
-        # Fn::ImportValue:
-        #   !Sub ${NetworkStackName}-PrivateSubnetID1
-      SecurityGroupIds:
+      SecurityGroups:
         - Fn::ImportValue:
             !Sub ${NetworkStackName}-ApplicationSGID
-      Tags:
-        - Key: Name
-          Value: Web Server
-        - Key: CostCenter
-          Value: C092000004
-        - Key: Project
-          Value: PB UNIVESP URI
-      PropagateTagsToVolumeOnCreation: true
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
           yum update -y aws-cfn-bootstrap
           # Install the files and packages from the metadata
-          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource WebServerInstance --configsets All --region ${AWS::Region}
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ApplicationLaunchConfiguration --configsets All --region ${AWS::Region}
           # Signal the status from cfn-init
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WebServerInstance --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ApplicationLaunchConfiguration --region ${AWS::Region}
+      
+  ApplicationASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MaxSize: 4
+      MinSize: 2
+      LaunchConfigurationName: !Ref ApplicationLaunchConfiguration
+      VPCZoneIdentifier:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PrivateSubnetID1
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PrivateSubnetID2
+      TargetGroupARNs:
+        - !Ref ApplicationTargetGroup
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 60
+      Tags:
+        - Value: PB UNIVESP URI
+          Key: Project
+          PropagateAtLaunch: true
+        - Value: C092000004
+          Key: CostCenter
+          PropagateAtLaunch: true
+        - Value: WordPress Server
+          Key: Name
+          PropagateAtLaunch: true
     CreationPolicy:
       ResourceSignal:
         Timeout: PT5M
@@ -183,3 +245,13 @@ Resources:
 ######################
 # Outputs section
 ######################
+
+Outputs:
+  
+  ALBDNS:
+    Description: The ALB's DNS address to access the application
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+
+  BastionHostIP:
+    Description: Public IP of the Bastion Host to have access to the private instances
+    Value: !GetAtt BastionHost.PublicIp
