@@ -238,9 +238,6 @@ Resources:
         - Value: WordPress Server
           Key: Name
           PropagateAtLaunch: true
-    CreationPolicy:
-      ResourceSignal:
-        Timeout: PT5M
 
 ######################
 # Outputs section
