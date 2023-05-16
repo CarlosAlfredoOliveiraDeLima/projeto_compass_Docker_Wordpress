@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  WordPress Data Layer Template: Creates an EFS File System and an RDS MySQL Instance
+
+# This template creates:
+#   EFS File System
+#   RDS MySQL Instance
+
+######################
+# Parameters section
+######################
+
+Parameters:
+
+  NetworkStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the VPC and subnet that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: wptask-network
+
+  RDSInstanceSize:
+    Type: String
+    Description: The size of the instance RDS will run on
+    AllowedValues:
+      - db.t3.micro
+      - db.t2.micro
+    Default: 'db.t3.micro'
+
+  RDSEngineVersion:
+    Type: String
+    Description: The size of the instance RDS will run on
+    AllowedValues:
+      - '5.7.41'
+      - '8.0.32'
+    Default: '8.0.32'
+
+  ApplicationDBName:
+    Type: String
+    Description: The name of the database for the application
+    NoEcho: true
+    MinLength: 6
+    AllowedPattern: '^[a-zA-Z]+$'
+    Default: wordpress
+
+  ApplicationDBUser:
+    Type: String
+    Description: The database username for the application
+    NoEcho: true
+    MinLength: 6
+    AllowedPattern: '^[a-zA-Z]+$'
+    Default: wordpress
+
+  ApplicationDBPassword:
+    Type: String
+    Description: The database password for the application
+    NoEcho: true
+    MinLength: 15
+    AllowedPattern: '^[^@/]+$'
+
+######################
+# Resources section
+######################
+
+Resources: 
+
+  ## SSM Parameters
+
+  ApplicationDBNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/${AWS::StackName}/dbname'
+      Description: Application DB name parameter
+      Type: String
+      Value: !Ref ApplicationDBName
+
+  ApplicationDBUserParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/${AWS::StackName}/dbuser'
+      Description: Application DB username parameter
+      Type: String
+      Value: !Ref ApplicationDBUser
+
+  ApplicationDBPasswordParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/${AWS::StackName}/dbpassword'
+      Description: Application DB password parameter
+      Type: String
+      Value: !Ref ApplicationDBPassword
+
+  ## EFS File System
+
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    DeletionPolicy: Delete
+    Properties:
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      Encrypted: true
+  
+  EFSMountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-PrivateSubnetID1
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-EFSSGID
+
+  EFSMountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-PrivateSubnetID2
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-EFSSGID
+
+  ## RDS MySQL
+
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for the application RDS MySQL instance
+      SubnetIds:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PrivateSubnetID1
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PrivateSubnetID2
+
+  RDSMySQLInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    Properties:
+      DBInstanceClass: !Ref RDSInstanceSize
+      Engine: mysql
+      EngineVersion: !Ref RDSEngineVersion
+      MasterUsername: !Ref ApplicationDBName
+      MasterUserPassword: !Ref ApplicationDBPassword
+      DBName: !Ref ApplicationDBName
+      AllocatedStorage: 20
+      MaxAllocatedStorage: 25
+      StorageType: gp3
+      PubliclyAccessible: false
+      VPCSecurityGroups:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-RDSSGID
+      BackupRetentionPeriod: 0
+      MonitoringInterval: 0
+      AutoMinorVersionUpgrade: false
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+
+Outputs:
+
+  EFSDNS:
+    Description: DNS address of the EFS file system
+    Value: !Join [ '.', [!GetAtt EFSFileSystem.FileSystemId, 'efs', !Sub "${AWS::Region}", amazonaws, com]]
+    Export:
+      Name: !Sub '${AWS::StackName}-EFSDNS'
+
+  RDSEndpoint:
+    Description: Endpoint address of the RDS instance
+    Value: !GetAtt RDSMySQLInstance.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-RDSEndpoint'
