@@ -72,7 +72,7 @@ aws ec2 authorize-security-group-ingress \
 echo "EFS SG <$WP_EFS_SG_ID> configured"
 
 # RDS SG
-WP_RDS_SG_ID=$(aws ec2 create-security-group --group-name "wordpress-task-rds-sg" --description "Security group for MySQL RDS - Allows MySQL//3306" --vpc-id "$WP_VPC_ID" \
+WP_RDS_SG_ID=$(aws ec2 create-security-group --group-name "wordpress-task-rds-sg" --description "Security group for MySQL RDS - Allows MySQL/3306" --vpc-id "$WP_VPC_ID" \
         --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=wordpress-task-rds-sg},$TAGS]" \
         --query "GroupId")
 # Allows NFS access from the WordPress SG
