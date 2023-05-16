@@ -19,7 +19,7 @@ WP_LC_NAME="wordpress-task-lc"
 aws autoscaling create-launch-configuration \
     --launch-configuration-name "$WP_LC_NAME" \
     --image-id ami-06a0cd9728546d178 \
-    --instance-type t3.small \
+    --instance-type t2.micro \
     --security-groups "$WP_WP_SG_ID" \
     --key-name "$WP_BASTION_KEY_NAME" \
     --user-data "file://$(dirname "$0")/wordpress-user-data.txt" \

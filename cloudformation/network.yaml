@@ -1,0 +1,312 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  WordPress Network Template: A template that creates a VPC with DNS and public IPs enabled, besides public and private subnets.
+
+# This template creates:
+#   VPC
+#   Internet Gateway
+#   NAT Gateway
+#   Public Route Table
+#   Private Route Table
+#   2 Public Subnets
+#   2 Private Subnets
+#   Security Groups
+
+######################
+# Parameters section
+######################
+
+Parameters:
+
+  AvailabilityZones:
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+    Description: "Two availability zones where to create the subnets"
+    Default: "us-east-1a, us-east-1b"
+     
+  SecurityGroupIngressCIDR:
+    Description: The IP address range that can be used to communicate to the Bastion Host
+    Type: String
+    MinLength: '10'
+    MaxLength: '18'
+    Default: 0.0.0.0/32
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/32
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/32.
+
+  ApplicationPort:
+    Description: Port through which the application will respond
+    Type: Number
+    MinValue: 8080
+    MaxValue: 65535
+
+######################
+# Resources section
+######################
+
+Resources:
+
+  ## VPC
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      CidrBlock: 10.0.0.0/16
+      
+  ## Internet Gateway
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  
+  ## Public Route Table
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+  
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  
+  ## Public Subnets
+  
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.250.0/24
+      AvailabilityZone: !Select 
+        - 0
+        - !Ref AvailabilityZones
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.251.0/24
+      AvailabilityZone: !Select 
+        - 1
+        - !Ref AvailabilityZones
+  
+  PublicSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+  
+  PublicSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  ## NAT Gateway
+
+  NATGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NATGateway:
+   Type: AWS::EC2::NatGateway
+   Properties:
+      AllocationId: !GetAtt NATGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+
+  ## Private Route Table
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+ 
+  RouteNATGateway:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NATGateway
+
+  ## Private Subnets
+  
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/22
+      AvailabilityZone: !Select 
+        - 0
+        - !Ref AvailabilityZones
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.16.0/22
+      AvailabilityZone: !Select 
+        - 1
+        - !Ref AvailabilityZones
+
+  PrivateSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  ## Security Groups
+
+  BastionHostSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Bastion host - Allows SSH
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: !Ref SecurityGroupIngressCIDR
+          FromPort: 22
+          ToPort: 22
+
+  ELBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for LB - Allows HTTP and HTTPS
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 80
+          ToPort: 80
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 443
+          ToPort: 443
+
+  ApplicationSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: !Sub Security group for the application - Allows SSH and ${ApplicationPort}
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          SourceSecurityGroupId: !Ref BastionHostSG
+          FromPort: 22
+          ToPort: 22
+        - IpProtocol: tcp
+          SourceSecurityGroupId: !Ref ELBSG
+          FromPort: !Sub ${ApplicationPort}
+          ToPort: !Sub ${ApplicationPort}
+
+  EFSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Security group for EFS - Allows NFS
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          SourceSecurityGroupId: !Ref ApplicationSG
+          FromPort: 2049
+          ToPort: 2049
+
+  RDSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Security group for MySQL RDS - Allows MySQL/3306
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          SourceSecurityGroupId: !Ref ApplicationSG
+          FromPort: 3306
+          ToPort: 3306
+
+  ## Application Parameters
+
+  ApplicationPortParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/${AWS::StackName}/appport'
+      Description: Port on which the app will respond
+      Type: String
+      Value: !Ref ApplicationPort
+
+######################
+# Outputs section
+######################
+
+Outputs:
+
+  VPC:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${AWS::StackName}-VPCID'
+  
+  PublicSubnet1:
+    Description: The subnet 1 ID to use for public resources
+    Value: !Ref PublicSubnet1
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicSubnetID1'
+
+  PublicSubnet2:
+    Description: The subnet 2 ID to use for public resources
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicSubnetID2'
+
+  PrivateSubnet1:
+    Description: The subnet 1 ID to use for private private
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: !Sub '${AWS::StackName}-PrivateSubnetID1'
+
+  PrivateSubnet2:
+    Description: The subnet 2 ID to use for public private
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub '${AWS::StackName}-PrivateSubnetID2'
+
+  BastionHostSG:
+    Description: Security group for the Bastion host
+    Value: !Ref BastionHostSG
+    Export:
+      Name: !Sub '${AWS::StackName}-BastionHostSGID'
+
+  ELBSG:
+    Description: Security group for the Elastic Load Balancer
+    Value: !Ref ELBSG
+    Export:
+      Name: !Sub '${AWS::StackName}-ELBSGID'
+
+  ApplicationSG:
+    Description: Security group for the application servers
+    Value: !Ref ApplicationSG
+    Export:
+      Name: !Sub '${AWS::StackName}-ApplicationSGID'
+
+  EFSSG:
+    Description: Security group for the EFS file system
+    Value: !Ref EFSSG
+    Export:
+      Name: !Sub '${AWS::StackName}-EFSSGID'
+
+  RDSSG:
+    Description: Security group for the RDS MySQL instance
+    Value: !Ref RDSSG
+    Export:
+      Name: !Sub '${AWS::StackName}-RDSSGID'

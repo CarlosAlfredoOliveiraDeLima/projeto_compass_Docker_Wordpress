@@ -1,0 +1,255 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Application Template: Demonstrates how to reference resources from a different stack.
+  This template provisions an EC2 instance in a VPC Subnet provisioned in a different stack.
+
+# This template creates:
+#   ASG for instances running WordPress on Docker
+#   Bastion Host
+#   Application Load Balancer
+
+######################
+# Parameters section
+######################
+
+Parameters:
+
+  NetworkStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the VPC and subnet that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: wptask-network
+
+  DataStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the data
+      resources, such as the EFS and RDS.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: wptask-data
+
+  SSHKey:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: SSH Key for accessing the instances
+
+  InstanceSize:
+    Type: String
+    Description: The size of the instance on which the server will run
+    AllowedValues:
+      - t2.micro
+      - t3.small
+    Default: t2.micro
+
+  AmazonLinuxAMIID:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+######################
+# Resources section
+######################
+
+Resources:
+
+  BastionHostEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceSize
+      ImageId: !Ref AmazonLinuxAMIID
+      KeyName: !Ref SSHKey
+      SubnetId: 
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-PublicSubnetID1
+      SecurityGroupIds:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-BastionHostSGID
+      Tags:
+        - Key: Name
+          Value: Bastion Host
+        - Key: CostCenter
+          Value: C092000004
+        - Key: Project
+          Value: PB UNIVESP URI
+      PropagateTagsToVolumeOnCreation: true
+
+  BastionHostEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref BastionHost
+      EIP: !Ref BastionHostEIP
+
+  ApplicationTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-VPCID
+      IpAddressType: ipv4
+      TargetType: instance
+      Protocol: HTTP
+      Port: !Sub "{{resolve:ssm:/${NetworkStackName}/appport}}"
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: !Sub "{{resolve:ssm:/${NetworkStackName}/appport}}"
+      HealthCheckPath: '/'
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+      Matcher: 
+        HttpCode: 200-399
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      IpAddressType: ipv4
+      Subnets:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PublicSubnetID1
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PublicSubnetID2
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-ELBSGID
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !GetAtt ApplicationTargetGroup.TargetGroupArn
+
+  ApplicationLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      'AWS::CloudFormation::Init':
+        configSets:
+          All:
+            - installDocker
+            - mountEFS
+            - docker-compose
+        installDocker:
+          packages:
+            yum:
+              docker: []
+          commands:
+            01_download:
+              command: curl -L https://github.com/docker/compose/releases/download/v2.17.3/docker-compose-$(uname -s)-$(uname -m) > /usr/local/bin/docker-compose
+            02_permission:
+              command: chmod +x /usr/local/bin/docker-compose
+            03_link: 
+              command: ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+          services:
+            sysvinit:
+              docker:
+                enabled: true
+                ensureRunning: true
+        mountEFS:
+          commands:
+            01_createdir:
+              command: mkdir /media/efs/
+            02_fstab:
+              command: printf "\n%s:/\t/media/efs/\tnfs4\tnfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport\t0\t0" "$EFS_URL" >> /etc/fstab
+              env:
+                EFS_URL: 
+                  Fn::ImportValue:
+                    !Sub ${DataStackName}-EFSDNS
+            03_mount:
+              command: mount -a
+        docker-compose:
+          files:
+            /opt/wordpress/docker-compose.yml:
+              content: !Sub |
+                version: '3.1'
+                services:
+                  wordpress:
+                    image: wordpress:6.2.0-apache
+                    restart: always
+                    ports:
+                      - {{resolve:ssm:/${NetworkStackName}/appport}}:80
+                    environment:
+                      WORDPRESS_DB_HOST: {{rdsendpoint}}
+                      WORDPRESS_DB_USER: {{resolve:ssm:/${DataStackName}/dbuser}}
+                      WORDPRESS_DB_PASSWORD: {{resolve:ssm:/${DataStackName}/dbpassword}}
+                      WORDPRESS_DB_NAME: {{resolve:ssm:/${DataStackName}/dbname}}
+                    volumes:
+                      - /media/efs/wordpress:/var/www/html
+              context:
+                rdsendpoint:
+                  Fn::ImportValue:
+                    !Sub ${DataStackName}-RDSEndpoint
+          commands:
+            start: 
+              command: docker-compose up -d
+              cwd: /opt/wordpress
+    Properties:
+      InstanceType: !Ref InstanceSize
+      ImageId: !Ref AmazonLinuxAMIID
+      KeyName: !Ref SSHKey
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-ApplicationSGID
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          yum update -y aws-cfn-bootstrap
+          # Install the files and packages from the metadata
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ApplicationLaunchConfiguration --configsets All --region ${AWS::Region}
+          # Signal the status from cfn-init
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ApplicationLaunchConfiguration --region ${AWS::Region}
+      
+  ApplicationASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MaxSize: 4
+      MinSize: 2
+      LaunchConfigurationName: !Ref ApplicationLaunchConfiguration
+      VPCZoneIdentifier:
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PrivateSubnetID1
+        - Fn::ImportValue:
+            !Sub ${NetworkStackName}-PrivateSubnetID2
+      TargetGroupARNs:
+        - !Ref ApplicationTargetGroup
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 60
+      Tags:
+        - Value: PB UNIVESP URI
+          Key: Project
+          PropagateAtLaunch: true
+        - Value: C092000004
+          Key: CostCenter
+          PropagateAtLaunch: true
+        - Value: WordPress Server
+          Key: Name
+          PropagateAtLaunch: true
+
+######################
+# Outputs section
+######################
+
+Outputs:
+  
+  ALBDNS:
+    Description: The ALB's DNS address to access the application
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+
+  BastionHostIP:
+    Description: Public IP of the Bastion Host to have access to the private instances
+    Value: !GetAtt BastionHost.PublicIp
