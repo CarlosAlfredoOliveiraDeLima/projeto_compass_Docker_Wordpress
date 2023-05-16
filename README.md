@@ -2,6 +2,8 @@
 
 ## **Objetivo** <br>
 O presente projeto, tem como objetivo ser um exercício prático de implementação de uma plataforma Wordpress que foi pensada para ser altalmente escalável e de alta disponibilidade, provisionada sob a infraestrutura da AWS com uso de Docker.
+
+Para fins de organização, foi disponibilizado na [Wiki](https://github.com/tomiokadasilva/projeto_compass_Docker_Wordpress/wiki) deste repositório o passo-a-passo para realizar cada configuração via AWS CLI. 
 <br><br>
 ## **Arquitetura** <br>
 
@@ -17,7 +19,7 @@ Para persistência dos dados gerais do Wordpress é usado uma instância MySQL n
 
 Por uma questão de disponibilidade, empregamos um [Application Load Balancer](https://github.com/tomiokadasilva/projeto_compass_Docker_Wordpress/wiki/Application-Load-Balancer-(ALB)) que distribui as requisições à todas instâncias privadas. Um ponto interessante é que o Application Load Balancer distribui as requisições para instâncias que estão em Subnets privadas, porém ele está ligado à Subnet pública para ser disponibilizado para a internet através do Internet Gateway. O Application Load Balancer também está ligado ao Route 53 para disponibilização de DNS.
 
-Toda estrutura de escalabilidade das instâncias privadas estão sob gerencia do Auto Scaling Group que aumenta e diminui a quantidade de instâncias privadas de acordo com a necessidade. O [Auto Scaling Group] (https://github.com/tomiokadasilva/projeto_compass_Docker_Wordpress/wiki/Auto-Scaling-Groups-(ASG)) se comunica com o Application Load Balancer para que o roteamento de requisições se adapte à quantidade de instâncias privadas operando em cada momento. <br><br>
+Toda estrutura de escalabilidade das instâncias privadas estão sob gerencia do Auto Scaling Group que aumenta e diminui a quantidade de instâncias privadas de acordo com a necessidade. O [Auto Scaling Group](https://github.com/tomiokadasilva/projeto_compass_Docker_Wordpress/wiki/Auto-Scaling-Groups-(ASG)) se comunica com o Application Load Balancer para que o roteamento de requisições se adapte à quantidade de instâncias privadas operando em cada momento. <br><br>
 
 
 ## **Diagrama da Arquitetura AWS**<br>
