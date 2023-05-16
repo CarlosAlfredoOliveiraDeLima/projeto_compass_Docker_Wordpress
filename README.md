@@ -31,3 +31,5 @@ Neste projeto a arquitetura foi implantada usando instâncias t3.small com siste
 No diretório provision há os arquivos shell contendo a execução dos passos para criação via CLI, o arquivo inicial é o ```provision_all.sh```.
 
 Para dúvidas sobre os comando AWS CLI nos scripts e suas funções, na área de Wiki deste repositório há uma explicação com exemplo sobre os comandos.
+
+Na raíz do repositório há um exemplo de um script simples (`user-data.sh`) para ser passado como argumento na função de user-data na criação das instâncias privadas.
