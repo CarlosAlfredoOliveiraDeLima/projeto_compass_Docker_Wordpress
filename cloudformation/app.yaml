@@ -4,8 +4,9 @@ Description: >-
   This template provisions an EC2 instance in a VPC Subnet provisioned in a different stack.
 
 # This template creates:
-#   Amazon EC2 instance
-#   Security Group
+#   ASG for instances running WordPress on Docker
+#   Bastion Host
+#   Application Load Balancer
 
 ######################
 # Parameters section

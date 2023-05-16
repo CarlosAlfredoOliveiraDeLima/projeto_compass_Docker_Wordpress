@@ -5,6 +5,7 @@ Description: >-
 # This template creates:
 #   EFS File System
 #   RDS MySQL Instance
+#   SSM Parameters to access the RDS database
 
 ######################
 # Parameters section
