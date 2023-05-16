@@ -235,6 +235,16 @@ Resources:
           FromPort: 3306
           ToPort: 3306
 
+  ## Application Parameters
+
+  ApplicationPortParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/${AWS::StackName}/appport'
+      Description: Port on which the app will respond
+      Type: String
+      Value: !Ref ApplicationPort
+
 ######################
 # Outputs section
 ######################
@@ -255,13 +265,13 @@ Outputs:
 
   PublicSubnet2:
     Description: The subnet 2 ID to use for public resources
-    Value: !Ref PublicSubnet2
+    Value: !Ref PrivateSubnet2
     Export:
       Name: !Sub '${AWS::StackName}-PublicSubnetID2'
 
   PrivateSubnet1:
     Description: The subnet 1 ID to use for private private
-    Value: !Ref PublicSubnet1
+    Value: !Ref PrivateSubnet1
     Export:
       Name: !Sub '${AWS::StackName}-PrivateSubnetID1'
 
