@@ -8,8 +8,8 @@ export AWS_REGION="us-east-1"
 ## Key pair
 
 KEY_NAME="wordpress-task-key"
-key_id=$(aws ec2 describe-key-pairs  --key-names "$KEY_NAME" --output=text --query 'KeyPairs[].KeyPairId')
-if [ -n "$key_id" ]; then
+if aws ec2 describe-key-pairs  --key-names "$KEY_NAME" --output=text --query 'KeyPairs[].KeyPairId' &> /dev/null; then
+    key_id=$(aws ec2 describe-key-pairs  --key-names "$KEY_NAME" --output=text --query 'KeyPairs[].KeyPairId')
     aws ec2 delete-key-pair --key-pair-id "$key_id" > /dev/null
     echo "Key pair deleted successfully"
 fi
@@ -29,7 +29,7 @@ echo "Key pair created successfully"
 
 NETWORK_STACK_NAME="wptask-network"
 NETWORK_STACK_PARAMETERS=(
-    "ParameterKey=AvailabilityZones,ParameterValue='${AWS_REGION}c,${AWS_REGION}d'"
+    "ParameterKey=AvailabilityZones,ParameterValue='${AWS_REGION}a,${AWS_REGION}b'"
     "ParameterKey=SecurityGroupIngressCIDR,ParameterValue='$(curl ifconfig.me 2> /dev/null)/32'"
     "ParameterKey=ApplicationPort,ParameterValue='8080'"
 )
