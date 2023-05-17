@@ -265,7 +265,7 @@ Outputs:
 
   PublicSubnet2:
     Description: The subnet 2 ID to use for public resources
-    Value: !Ref PrivateSubnet2
+    Value: !Ref PublicSubnet2
     Export:
       Name: !Sub '${AWS::StackName}-PublicSubnetID2'
 
